@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Forum</title>
+<style>
+body{background:#111;color:#eee;font-family:sans-serif}
+input,button{margin:4px}
+.post{border:1px solid #333;padding:8px;margin:8px}
+.comment{margin-left:15px;color:#ccc}
+</style>
+</head>
+<body>
+
+<h2>Forum</h2>
+
+<div id="auth">
+<input id="user" placeholder="username">
+<input id="pass" type="password" placeholder="password">
+<button onclick="signup()">Sign up</button>
+<button onclick="login()">Login</button>
+</div>
+
+<div id="app" style="display:none">
+<input id="title" placeholder="post title">
+<input id="body" placeholder="post body">
+<button onclick="createPost()">Post</button>
+<div id="posts"></div>
+</div>
+
+<script>
+const banned = ["porn","rape","nazi","child","kill yourself"];
+
+function clean(t){
+ return !banned.some(w => t.toLowerCase().includes(w));
+}
+
+function hash(s){
+ let h=0; for(let i=0;i<s.length;i++) h=(h<<5)-h+s.charCodeAt(i);
+ return h;
+}
+
+let users = JSON.parse(localStorage.users||"{}");
+let posts = JSON.parse(localStorage.posts||"[]");
+let current = null;
+
+function save(){
+ localStorage.users = JSON.stringify(users);
+ localStorage.posts = JSON.stringify(posts);
+}
+
+function signup(){
+ if(users[user.value]) return alert("User exists");
+ users[user.value]=hash(pass.value);
+ save(); login();
+}
+
+function login(){
+ if(users[user.value]!==hash(pass.value)) return alert("Wrong login");
+ current=user.value;
+ auth.style.display="none";
+ app.style.display="block";
+ render();
+}
+
+function createPost(){
+ if(!clean(title.value+body.value)) return alert("Blocked");
+ posts.unshift({id:Date.now(),u:current,t:title.value,b:body.value,v:0,c:[]});
+ save(); render();
+}
+
+function vote(id,a){
+ let p=posts.find(x=>x.id===id);
+ p.v+=a; save(); render();
+}
+
+function comment(id){
+ let txt=prompt("Comment");
+ if(!txt||!clean(txt)) return;
+ posts.find(x=>x.id===id).c.push(txt);
+ save(); render();
+}
+
+function render(){
+ postsDiv.innerHTML="";
+ posts.forEach(p=>{
+  postsDiv.innerHTML+=`
+   <div class="post">
+    <b>${p.t}</b> (${p.v})<br>${p.b}<br>
+    <button onclick="vote(${p.id},1)">+</button>
+    <button onclick="vote(${p.id},-1)">-</button>
+    <button onclick="comment(${p.id})">Comment</button>
+    ${p.c.map(x=>`<div class="comment">${x}</div>`).join("")}
+   </div>`;
+ });
+}
+</script>
+
+</body>
+</html>
